@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chennai Transit — Simulation Dashboard</title>
+  <meta name="description"
+    content="Simulate the Chennai Transit system: register users, track buses, manage trips, and monitor health alerts." />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header id="app-header">
+    <div class="header-inner">
+      <div class="logo-group">
+        <div class="logo-icon">🚌</div>
+        <div>
+          <h1>Chennai Transit</h1>
+          <p class="subtitle">Simulation Dashboard</p>
+        </div>
+      </div>
+      <nav style="display:flex;gap:8px;align-items:center;">
+        <a href="home.html" class="btn btn-ghost">🏠 Home</a>
+        <a href="tables.html" class="btn btn-ghost">📊 Tables</a>
+        <div class="header-status">
+          <span class="pulse-dot"></span>
+          <span id="header-tick">Simulator Running</span>
+        </div>
+        <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(248,113,113,0.25);" onclick="sessionStorage.clear();window.location.href='/app/login.html'">Logout</button>
+      </nav>
+    </div>
+  </header>
+
+  <main id="app-main">
+    <!-- ═══════════════ LIVE MAP STRIP ═══════════════ -->
+    <section class="card live-map-card" id="live-map-section">
+      <h2>🗺️ Live Bus Positions</h2>
+      <div class="live-strip-wrap">
+        <div class="live-strip" id="live-strip"><!-- filled by JS --></div>
+      </div>
+      <div class="bus-list" id="bus-list"><!-- filled by JS --></div>
+      <button class="btn btn-ghost" id="btn-refresh-buses" onclick="refreshBuses()">↻ Refresh</button>
+    </section>
+
+    <!-- ═══════════════ FLOW PANELS ═══════════════ -->
+    <div class="flow-grid">
+
+      <!-- ── Step 1: Register / Lookup User ──────────── -->
+      <section class="card" id="panel-user">
+        <div class="step-badge">1</div>
+        <h2>👤 Register / Lookup User</h2>
+        <div class="form-group">
+          <label for="inp-name">Name</label>
+          <input type="text" id="inp-name" placeholder="e.g. Arun" />
+        </div>
+        <div class="form-group">
+          <label for="inp-rfid">RFID Number</label>
+          <input type="text" id="inp-rfid" placeholder="e.g. AB12CD34EF" />
+        </div>
+        <div class="form-group">
+          <label for="inp-phone">Guardian Phone <span class="optional">(optional)</span></label>
+          <input type="text" id="inp-phone" placeholder="+91..." />
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="registerUser()">Register</button>
+          <button class="btn btn-secondary" onclick="lookupUser()">Lookup by RFID</button>
+        </div>
+        <div class="result-box" id="result-user"></div>
+      </section>
+
+      <!-- ── Step 2: Select Stops & Find Bus ─────────── -->
+      <section class="card" id="panel-stops">
+        <div class="step-badge">2</div>
+        <h2>📍 Select Stops & Find Bus</h2>
+        <div class="form-group">
+          <label for="sel-current-stop">Current Stop</label>
+          <select id="sel-current-stop"></select>
+        </div>
+        <div class="form-group">
+          <label for="sel-dest-stop">Destination Stop</label>
+          <select id="sel-dest-stop"></select>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="findNearestBus()">Find Nearest Bus</button>
+          <button class="btn btn-secondary" onclick="findAllBuses()">Show All Eligible</button>
+        </div>
+        <div class="result-box" id="result-bus"></div>
+      </section>
+
+      <!-- ── Step 3: Create Trip ─────────────────────── -->
+      <section class="card" id="panel-trip">
+        <div class="step-badge">3</div>
+        <h2>🎫 Create Trip</h2>
+        <p class="hint">Auto-fills from Steps 1 & 2. Bus auto-assigned if left empty.</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="inp-trip-uid">User ID</label>
+            <input type="number" id="inp-trip-uid" placeholder="1" />
+          </div>
+          <div class="form-group">
+            <label for="inp-trip-bus">Bus Number <span class="optional">(auto)</span></label>
+            <input type="text" id="inp-trip-bus" placeholder="auto-assigned" />
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="inp-trip-from">From Stop ID</label>
+            <input type="number" id="inp-trip-from" placeholder="1" />
+          </div>
+          <div class="form-group">
+            <label for="inp-trip-to">To Stop ID</label>
+            <input type="number" id="inp-trip-to" placeholder="3" />
+          </div>
+        </div>
+        <button class="btn btn-primary" onclick="createTrip()">Create Trip</button>
+        <div class="result-box" id="result-trip"></div>
+      </section>
+
+      <!-- ── Step 4: Verify Trip (Board / Alight) ────── -->
+      <section class="card" id="panel-verify">
+        <div class="step-badge">4</div>
+        <h2>✅ Verify Trip</h2>
+        <p class="hint">Simulates tapping RFID on the bus device.</p>
+        <div class="form-group">
+          <label for="inp-verify-rfid">RFID Number</label>
+          <input type="text" id="inp-verify-rfid" placeholder="AB12CD34EF" />
+        </div>
+        <div class="form-group">
+          <label for="sel-verify-stop">Device's Current Stop</label>
+          <select id="sel-verify-stop"></select>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-primary" onclick="verifyTrip()">Tap RFID (Verify)</button>
+          <button class="btn btn-secondary" onclick="checkActiveTrip()">Check Active Trip</button>
+        </div>
+        <div class="result-box" id="result-verify"></div>
+      </section>
+
+      <!-- ── Step 5: Simulation Controls ─────────────── -->
+      <section class="card" id="panel-sim">
+        <div class="step-badge">⚡</div>
+        <h2>🎮 Simulation Controls</h2>
+        <p class="hint">Force a bus to a specific stop (skip waiting for ticks).</p>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="inp-sim-bus">Bus Number</label>
+            <input type="text" id="inp-sim-bus" placeholder="101" />
+          </div>
+          <div class="form-group">
+            <label for="sel-sim-stop">Move to Stop</label>
+            <select id="sel-sim-stop"></select>
+          </div>
+        </div>
+        <button class="btn btn-accent" onclick="simulateArrive()">Force Arrive</button>
+        <div class="result-box" id="result-sim"></div>
+      </section>
+
+      <!-- ── Health Alerts ───────────────────────────── -->
+      <section class="card" id="panel-alerts">
+        <div class="step-badge">♥</div>
+        <h2>💓 Health Alerts</h2>
+        <div class="form-row">
+          <div class="form-group">
+            <label for="inp-alert-rfid">RFID</label>
+            <input type="text" id="inp-alert-rfid" placeholder="AB12CD34EF" />
+          </div>
+          <div class="form-group">
+            <label for="inp-alert-bpm">BPM</label>
+            <input type="number" id="inp-alert-bpm" placeholder="130" />
+          </div>
+        </div>
+        <div class="btn-row">
+          <button class="btn btn-danger" onclick="sendAlert()">Send Alert</button>
+          <button class="btn btn-secondary" onclick="viewAlerts()">View All Alerts</button>
+        </div>
+        <div class="result-box" id="result-alerts"></div>
+      </section>
+
+    </div><!-- /flow-grid -->
+  </main>
+
+  <script src="app.js"></script>
+</body>
+
+</html>

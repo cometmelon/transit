@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chennai Transit — Driver Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Driver-specific styles ─────────────────────────────────────── */
+    .driver-header-info {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .driver-header-info .user-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: rgba(52,211,153,0.1);
+      border: 1px solid rgba(52,211,153,0.25);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 0.78rem; font-weight: 600; color: var(--green);
+    }
+    .logout-btn {
+      background: rgba(248,113,113,0.1);
+      border: 1px solid rgba(248,113,113,0.25);
+      border-radius: var(--radius-sm);
+      padding: 6px 16px; font-size: 0.75rem; font-weight: 600;
+      color: var(--red); cursor: pointer;
+      transition: all var(--transition);
+    }
+    .logout-btn:hover { background: rgba(248,113,113,0.2); }
+
+    /* ── Bus selector overlay ──────────────────────────────────────── */
+    .bus-select-overlay {
+      position: fixed; inset: 0; z-index: 999;
+      background: rgba(0,0,0,0.75);
+      backdrop-filter: blur(12px);
+      display: flex; align-items: center; justify-content: center;
+      animation: fadeSlideIn 0.3s ease;
+    }
+    .bus-select-overlay.hidden { display: none; }
+    .bus-select-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius);
+      padding: 40px 36px;
+      max-width: 420px; width: 90%;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+    .bus-select-card h2 {
+      font-size: 1.4rem; font-weight: 800; margin-bottom: 8px;
+      display: block; justify-content: center;
+    }
+    .bus-select-card .subtext {
+      color: var(--text-muted); font-size: 0.82rem; margin-bottom: 24px;
+    }
+    .bus-select-card select {
+      margin-bottom: 20px; font-size: 1rem; padding: 12px 16px;
+      text-align: center;
+    }
+    .bus-select-card .btn { width: 100%; padding: 14px; font-size: 0.95rem; }
+
+    /* ── Hero bus card ─────────────────────────────────────────────── */
+    .hero-bus {
+      background: linear-gradient(135deg, rgba(108,140,255,0.12), rgba(52,211,153,0.08));
+      border: 1px solid rgba(108,140,255,0.2);
+      border-radius: var(--radius);
+      padding: 32px;
+      margin-bottom: 24px;
+      display: flex; align-items: center; gap: 28px;
+      position: relative; overflow: hidden;
+    }
+    .hero-bus::before {
+      content: '🚌'; position: absolute; right: 24px; top: 50%;
+      transform: translateY(-50%); font-size: 6rem; opacity: 0.06;
+    }
+    .hero-bus-number {
+      font-size: 2.8rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1;
+    }
+    .hero-bus-details { flex: 1; }
+    .hero-bus-details .route-label {
+      font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;
+    }
+    .hero-bus-details .current-label {
+      font-size: 0.85rem; color: var(--text-secondary);
+    }
+    .hero-bus-details .current-label strong {
+      color: var(--green); font-weight: 700;
+    }
+    .change-bus-btn {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 6px 14px; font-size: 0.72rem; font-weight: 600;
+      color: var(--text-muted); cursor: pointer;
+      transition: all var(--transition);
+      z-index: 1;
+    }
+    .change-bus-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+    /* ── Stats grid ────────────────────────────────────────────────── */
+    .stat-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 16px; margin-bottom: 24px;
+    }
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius);
+      padding: 20px;
+      backdrop-filter: blur(12px);
+      text-align: center;
+    }
+    .stat-card .stat-value {
+      font-size: 2rem; font-weight: 800;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-card .stat-label {
+      font-size: 0.7rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.08em;
+      margin-top: 2px;
+    }
+    .stat-card.accent-orange .stat-value {
+      background: linear-gradient(135deg, var(--orange), #f59e0b);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-card.accent-green .stat-value {
+      background: linear-gradient(135deg, var(--green), #10b981);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .stat-card.accent-red .stat-value {
+      background: linear-gradient(135deg, var(--red), #ef4444);
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* ── Route progress strip ──────────────────────────────────────── */
+    .route-progress { margin-bottom: 24px; }
+    .route-progress h2 { margin-bottom: 16px; }
+    .route-strip {
+      display: flex; align-items: center; gap: 0;
+      padding: 16px 12px;
+      overflow-x: auto;
+    }
+    .route-stop {
+      display: flex; flex-direction: column; align-items: center;
+      min-width: 120px; position: relative;
+    }
+    .route-stop-dot {
+      width: 22px; height: 22px; border-radius: 50%;
+      border: 3px solid var(--text-muted);
+      background: var(--bg-primary);
+      z-index: 2; transition: all 0.3s ease;
+      position: relative;
+    }
+    .route-stop-dot.is-current {
+      border-color: var(--green);
+      background: var(--green);
+      box-shadow: 0 0 20px var(--green-glow), 0 0 40px rgba(52,211,153,0.1);
+      animation: busPulse 1.5s ease-in-out infinite;
+    }
+    .route-stop-dot.is-current::after {
+      content: '🚌'; position: absolute; top: -28px; left: 50%;
+      transform: translateX(-50%); font-size: 1.2rem;
+    }
+    .route-stop-dot.is-passed {
+      border-color: var(--accent);
+      background: var(--accent);
+      opacity: 0.5;
+    }
+    .route-stop-dot.is-upcoming {
+      border-color: var(--text-muted);
+      background: transparent;
+    }
+    .route-stop-name {
+      font-size: 0.78rem; font-weight: 600;
+      color: var(--text-secondary); margin-top: 10px;
+      text-align: center; white-space: nowrap;
+    }
+    .route-stop-name.is-current { color: var(--green); font-weight: 700; }
+    .route-connector {
+      width: 50px; height: 4px;
+      background: var(--text-muted);
+      margin-bottom: 28px;
+      border-radius: 2px;
+      opacity: 0.3;
+    }
+    .route-connector.passed {
+      background: var(--accent);
+      opacity: 0.5;
+    }
+
+    /* ── Passenger list ────────────────────────────────────────────── */
+    .passengers-section h2 { margin-bottom: 12px; }
+    .passenger-list { display: flex; flex-direction: column; gap: 8px; max-height: 400px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--accent) transparent; }
+    .passenger-item {
+      background: rgba(0,0,0,0.25);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      animation: fadeSlideIn 0.35s ease;
+    }
+    .passenger-item .pax-info {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .passenger-item .pax-name {
+      font-weight: 700; font-size: 0.9rem;
+    }
+    .passenger-item .pax-route {
+      font-weight: 600; font-size: 0.82rem; color: var(--text-secondary);
+    }
+    .passenger-item .pax-meta {
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .passenger-item .pax-right {
+      display: flex; flex-direction: column; align-items: flex-end; gap: 6px;
+    }
+    .pax-phone {
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .empty-pax {
+      padding: 32px; text-align: center; color: var(--text-muted);
+      font-size: 0.88rem;
+    }
+
+    /* ── Two-column layout for passengers + route ───────────────── */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+    @media (max-width: 900px) {
+      .dashboard-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ── Alerts section ─────────────────────────────────────────── */
+    .alerts-section { margin-top: 24px; }
+    .alerts-section h2 { margin-bottom: 12px; }
+    .alert-list { display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--red) transparent; }
+    .alert-item {
+      background: rgba(248,113,113,0.06);
+      border: 1px solid rgba(248,113,113,0.2);
+      border-left: 3px solid var(--red);
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      display: flex; justify-content: space-between; align-items: center;
+      animation: fadeSlideIn 0.35s ease;
+    }
+    .alert-item .alert-info {
+      display: flex; flex-direction: column; gap: 2px;
+    }
+    .alert-item .alert-user {
+      font-weight: 700; font-size: 0.88rem;
+    }
+    .alert-item .alert-meta {
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+    .alert-item .alert-bpm {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .bpm-value {
+      font-size: 1.5rem; font-weight: 800;
+      color: var(--red);
+    }
+    .bpm-label {
+      font-size: 0.65rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .heart-icon {
+      font-size: 1.2rem;
+      animation: heartbeat 1s ease-in-out infinite;
+    }
+    @keyframes heartbeat {
+      0%, 100% { transform: scale(1); }
+      15% { transform: scale(1.3); }
+      30% { transform: scale(1); }
+      45% { transform: scale(1.2); }
+    }
+    .alert-normal {
+      background: rgba(52,211,153,0.06);
+      border: 1px solid rgba(52,211,153,0.2);
+      border-left: 3px solid var(--green);
+    }
+    .alert-normal .bpm-value { color: var(--green); }
+
+    /* ── Live Heart Rate Badges on Passenger Cards ──────────────── */
+    .pax-heartrate {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 0.78rem; font-weight: 700;
+      backdrop-filter: blur(6px);
+      transition: all 0.4s ease;
+      min-width: 80px; justify-content: center;
+    }
+    .pax-heartrate .hr-icon { font-size: 0.9rem; }
+    .pax-heartrate .hr-bpm { font-size: 0.95rem; font-weight: 800; }
+    .pax-heartrate .hr-unit { font-size: 0.6rem; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+
+    /* Normal (60-100 BPM) */
+    .hr-normal {
+      background: rgba(52,211,153,0.12);
+      border: 1px solid rgba(52,211,153,0.3);
+      color: var(--green);
+    }
+    .hr-normal .hr-icon { color: #34d399; animation: heartbeat 1.5s ease-in-out infinite; }
+
+    /* Warning (40-59 or 101-150 BPM) */
+    .hr-warning {
+      background: rgba(251,191,36,0.12);
+      border: 1px solid rgba(251,191,36,0.35);
+      color: #fbbf24;
+      box-shadow: 0 0 12px rgba(251,191,36,0.15);
+    }
+    .hr-warning .hr-icon { color: #fbbf24; animation: heartbeat 1s ease-in-out infinite; }
+
+    /* Critical (<40 or >150 BPM) */
+    .hr-critical {
+      background: rgba(248,113,113,0.15);
+      border: 1px solid rgba(248,113,113,0.4);
+      color: var(--red);
+      box-shadow: 0 0 18px rgba(248,113,113,0.25), 0 0 40px rgba(248,113,113,0.08);
+      animation: criticalPulse 1.2s ease-in-out infinite;
+    }
+    .hr-critical .hr-icon {
+      color: var(--red);
+      animation: heartbeat 0.6s ease-in-out infinite;
+    }
+    @keyframes criticalPulse {
+      0%, 100% { box-shadow: 0 0 18px rgba(248,113,113,0.25); }
+      50% { box-shadow: 0 0 28px rgba(248,113,113,0.45), 0 0 50px rgba(248,113,113,0.15); }
+    }
+
+    /* No reading yet */
+    .hr-pending {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid var(--border-card);
+      color: var(--text-muted);
+      font-style: italic; font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── BUS SELECTOR OVERLAY ──────────────────────────────────────── -->
+<div class="bus-select-overlay" id="bus-select-overlay">
+  <div class="bus-select-card">
+    <h2>🚌 Select Your Bus</h2>
+    <div class="subtext">Choose the bus you're driving today</div>
+    <select id="sel-bus-pick">
+      <option value="">Loading buses...</option>
+    </select>
+    <button class="btn btn-primary" onclick="confirmBus()">Start Driving</button>
+  </div>
+</div>
+
+<!-- ─── HEADER ─────────────────────────────────────────────────────── -->
+<header id="app-header">
+  <div class="header-inner">
+    <div class="logo-group">
+      <div class="logo-icon">🚌</div>
+      <div>
+        <h1>Chennai <span style="-webkit-text-fill-color: var(--green)">Transit</span></h1>
+        <div class="subtitle">Driver Dashboard</div>
+      </div>
+    </div>
+    <div class="driver-header-info">
+      <div class="user-badge" id="driver-badge">👤 Driver</div>
+      <div class="header-status">
+        <span class="pulse-dot"></span>
+        <span id="header-tick">Live</span>
+      </div>
+      <button class="logout-btn" onclick="logout()">Logout</button>
+    </div>
+  </div>
+</header>
+
+<!-- ─── MAIN ───────────────────────────────────────────────────────── -->
+<main id="app-main">
+
+  <!-- Hero card: My Bus -->
+  <div class="hero-bus" id="hero-bus">
+    <div class="hero-bus-number" id="hero-number">—</div>
+    <div class="hero-bus-details">
+      <div class="route-label" id="hero-route">Select a bus to begin</div>
+      <div class="current-label" id="hero-current">—</div>
+    </div>
+    <button class="change-bus-btn" onclick="showBusSelector()">Change Bus</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stat-grid">
+    <div class="stat-card accent-orange">
+      <div class="stat-value" id="stat-waiting">0</div>
+      <div class="stat-label">Waiting</div>
+    </div>
+    <div class="stat-card accent-green">
+      <div class="stat-value" id="stat-boarded">0</div>
+      <div class="stat-label">On Board</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="stat-stops-remaining">0</div>
+      <div class="stat-label">Stops Left</div>
+    </div>
+    <div class="stat-card accent-red">
+      <div class="stat-value" id="stat-completed">0</div>
+      <div class="stat-label">Completed</div>
+    </div>
+  </div>
+
+  <!-- Two-column: Route + Passengers -->
+  <div class="dashboard-grid">
+
+    <!-- Route progress -->
+    <div class="card route-progress">
+      <h2>📍 Route Progress</h2>
+      <div class="route-strip" id="route-strip">
+        <div class="empty-pax">Select a bus to see route</div>
+      </div>
+    </div>
+
+    <!-- Passengers -->
+    <div class="card passengers-section">
+      <h2>👥 My Passengers</h2>
+      <div class="passenger-list" id="passenger-list">
+        <div class="empty-pax">No passengers yet</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Health Alerts -->
+  <div class="card alerts-section">
+    <h2>❤️ Health Alerts & Heart Rate</h2>
+    <div class="alert-list" id="alert-list">
+      <div class="empty-pax">No health alerts</div>
+    </div>
+  </div>
+
+</main>
+
+<script src="driver.js"></script>
+</body>
+</html>

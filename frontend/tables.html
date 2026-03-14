@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chennai Transit — Database Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* ── Tabs ──────────────────────────────────────────────── */
+        .tabs {
+            display: flex;
+            gap: 6px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .tab-btn {
+            padding: 10px 22px;
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius-sm);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            font-family: inherit;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .tab-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+        }
+
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent), #8b5cf6);
+            color: #fff;
+            border-color: transparent;
+            box-shadow: 0 4px 16px var(--accent-glow);
+        }
+
+        .tab-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 20px;
+            height: 20px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.15);
+            font-size: 0.7rem;
+            margin-left: 6px;
+            padding: 0 5px;
+        }
+
+        .tab-btn.active .tab-count {
+            background: rgba(255, 255, 255, 0.25);
+        }
+
+        /* ── Table styles ─────────────────────────────────────── */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-card);
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.82rem;
+            white-space: nowrap;
+        }
+
+        thead {
+            background: rgba(108, 140, 255, 0.08);
+        }
+
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 700;
+            color: var(--accent);
+            text-transform: uppercase;
+            font-size: 0.72rem;
+            letter-spacing: 0.06em;
+            border-bottom: 1px solid var(--border-card);
+        }
+
+        td {
+            padding: 10px 16px;
+            border-bottom: 1px solid rgba(99, 128, 255, 0.06);
+            color: var(--text-primary);
+        }
+
+        tbody tr {
+            transition: background var(--transition);
+        }
+
+        tbody tr:hover {
+            background: rgba(108, 140, 255, 0.05);
+        }
+
+        .empty-msg {
+            padding: 40px;
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        /* ── Auto-refresh indicator ────────────────────────────── */
+        .refresh-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+            gap: 12px;
+        }
+
+        .last-refreshed {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+    </style>
+</head>
+
+<body>
+    <!-- ── HEADER ──────────────────────────────────────────── -->
+    <header id="app-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <span class="logo-icon">🚍</span>
+                <div>
+                    <h1>Chennai Transit</h1>
+                    <span class="subtitle">Database Viewer</span>
+                </div>
+            </div>
+            <nav style="display:flex;gap:8px;align-items:center;">
+                <a href="home.html" class="btn btn-ghost">🏠 Home</a>
+                <a href="index.html" class="btn btn-ghost">🎮 Simulator</a>
+                <div class="header-status">
+                    <div class="pulse-dot"></div>
+                    <span id="header-tick">Loading…</span>
+                </div>
+                <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(248,113,113,0.25);" onclick="sessionStorage.clear();window.location.href='/app/login.html'">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- ── MAIN ────────────────────────────────────────────── -->
+    <main id="app-main">
+
+        <!-- Tabs -->
+        <div class="tabs" id="tab-bar">
+            <button class="tab-btn active" data-table="stops">📍 Stops <span class="tab-count"
+                    id="cnt-stops">-</span></button>
+            <button class="tab-btn" data-table="buses">🚌 Buses <span class="tab-count" id="cnt-buses">-</span></button>
+            <button class="tab-btn" data-table="users">👤 Users <span class="tab-count" id="cnt-users">-</span></button>
+            <button class="tab-btn" data-table="trips">🎫 Trips <span class="tab-count" id="cnt-trips">-</span></button>
+            <button class="tab-btn" data-table="alerts">💗 Alerts <span class="tab-count"
+                    id="cnt-alerts">-</span></button>
+        </div>
+
+        <!-- Refresh bar -->
+        <div class="refresh-bar">
+            <button class="btn btn-ghost" onclick="refreshAll()">↻ Refresh Now</button>
+            <span class="last-refreshed" id="last-refreshed"></span>
+        </div>
+
+        <!-- Card with table -->
+        <section class="card" style="padding:0;overflow:hidden;">
+            <div class="table-wrap">
+                <div id="table-content"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="tables.js"></script>
+</body>
+
+</html>

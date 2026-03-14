@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chennai Transit — Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <style>
+    /* ── Login-specific layout ─────────────────────────────────────── */
+    .login-wrapper {
+      display: flex; align-items: center; justify-content: center;
+      min-height: 100vh; padding: 24px;
+    }
+    .login-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-card);
+      border-radius: var(--radius);
+      padding: 48px 40px 40px;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      box-shadow: var(--shadow), 0 0 80px rgba(108,140,255,0.06);
+      width: 100%; max-width: 420px;
+      animation: cardEntry 0.6s ease;
+    }
+    @keyframes cardEntry {
+      from { opacity: 0; transform: translateY(24px) scale(0.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    .login-logo {
+      text-align: center; margin-bottom: 32px;
+    }
+    .login-logo .icon {
+      font-size: 3rem; margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--accent), var(--green));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .login-logo h1 {
+      font-size: 1.5rem; font-weight: 800;
+      background: linear-gradient(135deg, #fff, var(--accent));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 4px;
+    }
+    .login-logo .subtitle {
+      font-size: 0.75rem; color: var(--text-muted);
+      text-transform: uppercase; letter-spacing: 0.1em;
+    }
+
+    .login-card .form-group { margin-bottom: 20px; }
+    .login-card .form-group label {
+      display: block; font-size: 0.8rem; font-weight: 600;
+      color: var(--text-secondary); margin-bottom: 6px;
+    }
+    .login-card input {
+      padding: 12px 16px; font-size: 0.92rem;
+    }
+
+    .login-btn {
+      width: 100%; padding: 14px; border: none; border-radius: var(--radius-sm);
+      font-family: inherit; font-size: 0.95rem; font-weight: 700;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), #8b5cf6);
+      color: #fff;
+      box-shadow: 0 4px 20px var(--accent-glow);
+      transition: all var(--transition);
+      position: relative; overflow: hidden;
+    }
+    .login-btn:hover {
+      box-shadow: 0 6px 28px rgba(108,140,255,0.4);
+      transform: translateY(-1px);
+    }
+    .login-btn:active { transform: scale(0.98); }
+    .login-btn:disabled {
+      opacity: 0.6; cursor: not-allowed; transform: none !important;
+    }
+
+    .login-error {
+      margin-top: 16px; padding: 12px 16px;
+      background: var(--red-glow);
+      border: 1px solid rgba(248,113,113,0.3);
+      border-radius: var(--radius-sm);
+      color: var(--red); font-size: 0.82rem; font-weight: 600;
+      text-align: center;
+      animation: fadeSlideIn 0.3s ease;
+      display: none;
+    }
+
+    .login-footer {
+      margin-top: 28px; text-align: center;
+      font-size: 0.72rem; color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+
+<div class="login-wrapper">
+  <div class="login-card">
+    <div class="login-logo">
+      <div class="icon">🚌</div>
+      <h1>Chennai Transit</h1>
+      <div class="subtitle">Smart Transit Management</div>
+    </div>
+
+    <form id="login-form" autocomplete="off">
+      <div class="form-group">
+        <label for="inp-username">Username</label>
+        <input type="text" id="inp-username" placeholder="Enter your username" required autofocus>
+      </div>
+      <div class="form-group">
+        <label for="inp-password">Password</label>
+        <input type="password" id="inp-password" placeholder="Enter your password" required>
+      </div>
+      <button type="submit" class="login-btn" id="btn-login">Sign In</button>
+    </form>
+
+    <div class="login-error" id="login-error"></div>
+
+    <div class="login-footer">
+      &copy; 2026 Chennai Transit System
+    </div>
+  </div>
+</div>
+
+<script src="login.js"></script>
+</body>
+</html>

@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chennai Transit — Dashboard</title>
+    <meta name="description"
+        content="Real-time overview of the Chennai Transit system: bus positions, trip activity, and system health." />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="style.css" />
+    <style>
+        /* ── Stats row ──────────────────────────────────────── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-card);
+            border-radius: var(--radius);
+            padding: 22px 24px;
+            backdrop-filter: blur(12px);
+            position: relative;
+            overflow: hidden;
+            transition: border-color var(--transition), transform var(--transition);
+        }
+
+        .stat-card:hover {
+            border-color: rgba(108, 140, 255, 0.25);
+            transform: translateY(-2px);
+        }
+
+        .stat-card .stat-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.3));
+        }
+
+        .stat-card .stat-value {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+            line-height: 1.1;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-top: 4px;
+        }
+
+        .stat-card .stat-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            margin-top: 6px;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: -30px;
+            right: -30px;
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            opacity: 0.06;
+        }
+
+        .stat-card.blue::after {
+            background: var(--accent);
+        }
+
+        .stat-card.green::after {
+            background: var(--green);
+        }
+
+        .stat-card.orange::after {
+            background: var(--orange);
+        }
+
+        .stat-card.red::after {
+            background: var(--red);
+        }
+
+        /* ── Grid layout ───────────────────────────────────── */
+        .dash-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 24px;
+        }
+
+        @media (max-width: 960px) {
+            .dash-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* ── Activity feed ─────────────────────────────────── */
+        .activity-list {
+            max-height: 400px;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: var(--accent) transparent;
+        }
+
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(99, 128, 255, 0.06);
+            animation: fadeSlideIn 0.35s ease;
+        }
+
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+
+        .activity-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-top: 5px;
+            flex-shrink: 0;
+        }
+
+        .activity-dot.waiting {
+            background: var(--orange);
+            box-shadow: 0 0 8px var(--orange-glow);
+        }
+
+        .activity-dot.boarded {
+            background: var(--accent);
+            box-shadow: 0 0 8px var(--accent-glow);
+        }
+
+        .activity-dot.completed {
+            background: var(--green);
+            box-shadow: 0 0 8px var(--green-glow);
+        }
+
+        .activity-text {
+            font-size: 0.82rem;
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .activity-text .muted {
+            color: var(--text-muted);
+            font-size: 0.72rem;
+        }
+
+        /* ── Stop chart bars ───────────────────────────────── */
+        .stop-bar-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+
+        .stop-bar-label {
+            width: 90px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-align: right;
+        }
+
+        .stop-bar-track {
+            flex: 1;
+            height: 22px;
+            background: rgba(0, 0, 0, 0.25);
+            border-radius: 11px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .stop-bar-fill {
+            height: 100%;
+            border-radius: 11px;
+            background: linear-gradient(90deg, var(--accent), #8b5cf6);
+            transition: width 0.6s cubic-bezier(.4, 0, .2, 1);
+            min-width: 0;
+        }
+
+        .stop-bar-count {
+            width: 30px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        /* ── Quick actions ─────────────────────────────────── */
+        .quick-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .quick-btn {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 18px;
+            border-radius: var(--radius-sm);
+            background: rgba(108, 140, 255, 0.06);
+            border: 1px solid var(--border-card);
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 0.82rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-decoration: none;
+        }
+
+        .quick-btn:hover {
+            background: rgba(108, 140, 255, 0.12);
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .quick-btn .qicon {
+            font-size: 1.3rem;
+        }
+
+        /* ── Nav links ─────────────────────────────────────── */
+        .nav-links {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .nav-links a {
+            text-decoration: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ═══════════════ HEADER ═══════════════ -->
+    <header id="app-header">
+        <div class="header-inner">
+            <div class="logo-group">
+                <div class="logo-icon">🚍</div>
+                <div>
+                    <h1>Chennai Transit</h1>
+                    <p class="subtitle">System Overview</p>
+                </div>
+            </div>
+            <nav class="nav-links">
+                <a href="index.html" class="btn btn-ghost">🎮 Simulator</a>
+                <a href="tables.html" class="btn btn-ghost">📊 Tables</a>
+                <div class="header-status">
+                    <span class="pulse-dot"></span>
+                    <span id="header-tick">Loading…</span>
+                </div>
+                <button class="btn btn-ghost" style="color:var(--red);border-color:rgba(248,113,113,0.25);" onclick="sessionStorage.clear();window.location.href='/app/login.html'">Logout</button>
+            </nav>
+        </div>
+    </header>
+
+    <main id="app-main">
+
+        <!-- ═══════════════ STAT CARDS ═══════════════ -->
+        <section class="stats-row">
+            <div class="stat-card blue">
+                <div class="stat-icon">🚌</div>
+                <div class="stat-value" id="stat-buses">—</div>
+                <div class="stat-label">Running Buses</div>
+                <div class="stat-sub" id="stat-buses-sub"></div>
+            </div>
+            <div class="stat-card green">
+                <div class="stat-icon">🎫</div>
+                <div class="stat-value" id="stat-trips">—</div>
+                <div class="stat-label">Total Trips</div>
+                <div class="stat-sub" id="stat-trips-sub"></div>
+            </div>
+            <div class="stat-card orange">
+                <div class="stat-icon">👤</div>
+                <div class="stat-value" id="stat-users">—</div>
+                <div class="stat-label">Registered Users</div>
+                <div class="stat-sub" id="stat-users-sub"></div>
+            </div>
+            <div class="stat-card red">
+                <div class="stat-icon">💗</div>
+                <div class="stat-value" id="stat-alerts">—</div>
+                <div class="stat-label">Health Alerts</div>
+                <div class="stat-sub" id="stat-alerts-sub"></div>
+            </div>
+        </section>
+
+        <!-- ═══════════════ LIVE BUS MAP ═══════════════ -->
+        <section class="card live-map-card" style="margin-bottom:24px;">
+            <h2>🗺️ Live Bus Positions</h2>
+            <div class="live-strip-wrap">
+                <div class="live-strip" id="live-strip"></div>
+            </div>
+            <div class="bus-list" id="bus-list"></div>
+        </section>
+
+        <!-- ═══════════════ MAIN GRID ═══════════════ -->
+        <div class="dash-grid">
+
+            <!-- LEFT: Stop traffic + Quick actions -->
+            <div style="display:flex;flex-direction:column;gap:24px;">
+
+                <!-- Stop Traffic -->
+                <section class="card">
+                    <h2>📊 Buses at Each Stop</h2>
+                    <div id="stop-chart"></div>
+                </section>
+
+                <!-- Quick Actions -->
+                <section class="card">
+                    <h2>⚡ Quick Actions</h2>
+                    <div class="quick-grid">
+                        <a href="index.html" class="quick-btn"><span class="qicon">🎮</span> Simulation Dashboard</a>
+                        <a href="tables.html" class="quick-btn"><span class="qicon">📊</span> Database Tables</a>
+                        <a href="index.html#panel-user" class="quick-btn"><span class="qicon">👤</span> Register
+                            User</a>
+                        <a href="index.html#panel-trip" class="quick-btn"><span class="qicon">🎫</span> Create Trip</a>
+                        <a href="index.html#panel-sim" class="quick-btn"><span class="qicon">🚌</span> Move a Bus</a>
+                        <a href="index.html#panel-alerts" class="quick-btn"><span class="qicon">💗</span> Send Alert</a>
+                    </div>
+                </section>
+            </div>
+
+            <!-- RIGHT: Activity feed -->
+            <section class="card">
+                <h2>📋 Recent Trip Activity</h2>
+                <div class="activity-list" id="activity-feed">
+                    <div class="empty-msg" style="padding:20px;text-align:center;color:var(--text-muted);">Loading…
+                    </div>
+                </div>
+            </section>
+
+        </div>
+    </main>
+
+    <script src="home.js"></script>
+</body>
+
+</html>
