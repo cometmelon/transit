@@ -2,7 +2,7 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./transit.db")
+DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./transit.db").strip()
 
 # Supabase / Render may provide postgres:// but SQLAlchemy 2.x needs postgresql://
 if DATABASE_URL.startswith("postgres://"):
